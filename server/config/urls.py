@@ -31,11 +31,15 @@ router.register('genres', film_views.GenreViewSet, basename='genres')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Api routes
-    path('api/', include('apps.authentication.urls')),
-    path('api/', include(router.urls)),
-    path('api/userfilms/', film_views.FilmUserViewSet.as_view(), name='user-films'),
+    #API versioning
+    path('api/v1/', include('apps.authentication.urls')),
+    path('api/v1/', include(router.urls)),
+    path('api/v1/userfilms/', film_views.FilmUserViewSet.as_view(), name='user-films'),
+    
+
 ]
+
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,3 +1,5 @@
+
+import logging
 from django.shortcuts import render
 from rest_framework import viewsets, filters, views, status, authentication, permissions
 from .models import *
@@ -5,6 +7,11 @@ from .serializers import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+
+# Configura el logger para este módulo
+logger = logging.getLogger(__name__)
+
+import logging
 
 # Create your views here.
 class ExtendedPagination(PageNumberPagination):
@@ -59,41 +66,47 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
 class FilmUserViewSet(views.APIView):
     authentication_classes = [authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request, *args, **kwargs):
         queryset = FilmUser.objects.filter(user=request.user)
         serializer = FilmUserSerializer(queryset, many=True)
+        logger.info(f"User {request.user} requested their film list. Returned {len(serializer.data)} items.")
         return Response(serializer.data)
-    
+
     def post(self, request, *args, **kwargs):
+        user = request.user
+        film_uuid = request.data.get('uuid')
         try:
-            film = Film.objects.get(id=request.data['uuid'])
+            film = Film.objects.get(id=film_uuid)
         except Film.DoesNotExist:
+            logger.warning(f"Film not found for uuid: {film_uuid} by user {user}")
             return Response(
                 {'status': 'Film not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
         # Al recuperar la película, se crea o actualiza la relación con el usuario
         film_user, created = FilmUser.objects.update_or_create(
-            user=request.user, film=film,
+            user=user, film=film,
         )
-        
+
         # Configuracion de cada campo
         film_user.favorite = request.data.get('favorite', False)
         film_user.state = request.data.get('state', 0)
         film_user.note = request.data.get('note', -1)
         film_user.review = request.data.get('review', None)
-        
+
         # Si hay pelicula como no vista, se borra automaticamente
-        if int(film_user.state)==0:
+        if int(film_user.state) == 0:
             film_user.delete()
+            logger.info(f"FilmUser entry deleted for user {user} and film {film.id}")
             return Response(
                 {'status': 'Deleted'},
                 status=status.HTTP_200_OK
             )
         else:
             film_user.save()
-            
+            logger.info(f"FilmUser entry saved/updated for user {user} and film {film.id}")
+
         return Response(
             {'status': 'Saved'},
             status=status.HTTP_200_OK

@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Django external apps
     'rest_framework',
+    'rest_framework.authtoken',
     'django_rest_passwordreset',
     'corsheaders',
     'django_filters',
@@ -103,4 +104,118 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
+    #Auth
+    "DEFAULT_AUTHENTICATION_CLASSES":{
+        "rest_framework.authentication.TokenAuthentication", # Para autenticación basada en tokens
+        "rest_framework.authentication.SessionAuthentication", # Para autenticación basada en sesiones (útil para el panel de administración)
+    },
+    # Permissions
+    # Optional:
+    "DEFAULT_PERMISSION_CLASSES": {
+        "rest_framework.permissions.IsAuthenticated", # Requiere autenticación para todas las vistas por defecto
+    },
+    # Pagination
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10, # Número de resultados por página
+    
+    # Filtros
+    
+    "DEFAULT_FILTER_BACKENDS": {
+        "django_filters.rest_framework.DjangoFilterBackend", # Para filtros basados en campos
+        "rest_framework.filters.SearchFilter", # Para búsqueda por texto
+        "rest_framework.filters.OrderingFilter", # Para ordenamiento de resultados
+    },
+    # Formato de fecha/hora
+    "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z", # Formato ISO 8601
+    
+    
+}
+
+# Configuracion de Throttling (limitación de tasa)
+REST_FRAMEWORK.update({
+    "DEFAULT_THROTTLE_CLASSES": {
+        "rest_framework.throttling.UserRateThrottle", # Limita por usuario autenticado
+        "rest_framework.throttling.AnonRateThrottle", # Limita por usuario anónimo
+    },
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "300/min", # Limite para usuarios autenticados
+        "anon": "60/min", # Limite para usuarios anónimos
+    }
+})
+
+# Versionado de la API
+REST_FRAMEWORK["DEFAULT_VERSIONING_CLASS"] = "rest_framework.versioning.URLPathVersioning"
+REST_FRAMEWORK["DEFAULT_VERSION"] = "v1"
+REST_FRAMEWORK["ALLOWED_VERSIONS"] = ["v1", "v2"]
+REST_FRAMEWORK["EXCEPTION_HANDLER"] = "config.exceptions_handler.custom_exception_handler"
+
+# Manejo de Logging
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True) # Crear el directorio de logs si no existe
+
+LOGGING ={
+    "version":1,
+    "disable_existing_loggers": False,
+    "formatters":{
+        "verbose":{
+            "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+        },
+        "simple":{
+            "format": "%(levelname)s | %(name)s | %(message)s"
+        },
+    },
+    "handlers":{
+        "console":{
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        "file":{
+            "class": "logging.FileHandler",
+            "filename": str(LOG_DIR / "server.log"),
+            "maxBytes": 5 * 1024 * 1024, # 5 MB
+            "backupCount": 5, # Mantener los últimos 5 archivos de log
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        "file_error":{
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOG_DIR / "server_error.log"),
+            "maxBytes": 5 * 1024 * 1024, # 5
+            "backupCount": 5, # Mantener los últimos 5 archivos de log
+            "formatter": "verbose",
+            "encoding": "utf-8",
+            "level": "ERROR",
+        },
+    },
+    "logger":{
+        # Django core
+        "django":{
+            "handlers": ["console","file"],
+            "level":"INFO",
+            "propagate": True,
+        },
+        # Errors requests
+        "django.request":{
+            "handlers":["console","file_error"],
+            "level":"ERROR",
+            "propagate": False,
+        },
+        # DRF
+        "rest_framework":{
+            "handlers": ["console","file"],
+            "level":"INFO",
+            "propagate": False,
+        },
+        # App personalizada
+        "apps.authentication":{
+            "handlers":["console","file"],
+            "level":"INFO",
+            "propagate": False,
+        },
+        "apps.films":{
+            "handlers":["console","file"],
+            "level":"INFO",
+            "propagate": False,
+        },
+    },
 }

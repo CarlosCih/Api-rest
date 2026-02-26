@@ -21,3 +21,10 @@ DATABASES = {
 
 # Configuración de CORS
 CORS_ALLOWED_ORIGINS = env.list('DJANGO_CORS_ALLOWED_ORIGINS', default=[])
+
+# configuracion de Logging
+LOGGING["loggers"]["apps.authentication"]["level"] = "DEBUG"
+LOGGING["loggers"]["apps.films"]["level"] = "DEBUG"
+LOGGING["loggers"]["django"]["level"] = "DEBUG"
+LOGGING["loggers"]["rest_framework"]["level"] = "DEBUG"
+    
