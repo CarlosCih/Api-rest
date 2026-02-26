@@ -19,7 +19,7 @@ from django.contrib import admin
 from rest_framework import routers
 from django.urls import path, include
 from django.conf.urls.static import static
-from films import views as film_views
+from apps.films import views as film_views
 
 
 # Router para las vistas de la app films
@@ -32,7 +32,7 @@ router.register('genres', film_views.GenreViewSet, basename='genres')
 urlpatterns = [
     path('admin/', admin.site.urls),
     # Api routes
-    path('api/', include('authentication.urls')),
+    path('api/', include('apps.authentication.urls')),
     path('api/', include(router.urls)),
     path('api/userfilms/', film_views.FilmUserViewSet.as_view(), name='user-films'),
 ]

@@ -46,8 +46,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     # app personalizada
-    'authentication',
-    'films',
+    'apps.authentication',
+    'apps.films',
 ]
 
 MIDDLEWARE = [
@@ -67,7 +67,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
-ROOT_URLCONF = 'server.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -84,7 +84,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'server.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 
 # Database
