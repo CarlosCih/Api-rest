@@ -5,17 +5,21 @@ from rest_framework.views import APIView
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.response import Response
 from rest_framework import status, generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import *
 from .serializers import *
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Configura el logger para este módulo
 logger = logging.getLogger(__name__)
 
 # Create your views here.
-
+class LoginRateThrottle(AnonRateThrottle):
+    scope = 'login'
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
     
     def post(self, request):
         # Lógica para autenticar al usuario y generar un token JWT
@@ -25,21 +29,41 @@ class LoginView(APIView):
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
-            login(request, user)
-            serializer = UserReadSerializer(user)
+            refresh = RefreshToken.for_user(user)
             logger.info(f"Login exitoso para usuario: {email}")
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({
+                'user': UserSerializer(user).data,
+                'token': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_200_OK)
         else:
             logger.warning(f"Intento de login fallido para usuario: {email}")
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {'detail': 'Credenciales inválidas'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         
 
 class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
-        user = request.user if request.user.is_authenticated else None
-        logout(request)
-        logger.info(f"Logout realizado para usuario: {user}")
-        return Response(status=status.HTTP_200_OK)
+        try:
+            refresh_token = request.data.get('refresh_token')
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # Agrega el token a la lista negra
+            
+            logger.info(f"Logout exitoso para usuario: {request.user}")
+            return Response({
+                'detail': 'Logout exitoso'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error durante logout para usuario: {request.user} - {str(e)}")
+            return Response({
+                'detail': 'Error durante logout'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class SignupView(generics.CreateAPIView):
     serializer_class = UserCreateSerializer

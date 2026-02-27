@@ -1,15 +1,12 @@
 from pathlib import Path
+from datetime import timedelta
 import os, environ
-
 env = environ.Env()
 environ.Env.read_env()
-
 print("Cargando configuración base...")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parents[2]
-
 print(f"BASE_DIR: {BASE_DIR}")
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -24,11 +21,12 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'drf_spectacular',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     # app personalizada
     'apps.authentication',
     'apps.films',
 ]
-
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -39,9 +37,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
 ROOT_URLCONF = 'config.urls'
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -56,10 +52,8 @@ TEMPLATES = [
         },
     },
 ]
-
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -74,42 +68,37 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+# Simple JWT settings
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60), # Duración del token de acceso
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7), # Duración del token
+    "ROTATE_REFRESH_TOKENS": True, # Rotar tokens de refresco
+    "BLACKLIST_AFTER_ROTATION": True, # Agregar tokens rotados a la lista
+    "UPDATE_LAST_LOGIN": True, # Actualizar el campo last_login del usuario al autenticar
+}
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
-
 LANGUAGE_CODE = 'es-mx'
-
 TIME_ZONE = 'America/Mexico_City'
-
 USE_I18N = True
-
 USE_TZ = True
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
-
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'static_files/'
-
 STATICFILES_DIRS = [
     BASE_DIR / 'static/'
 ]
-
 # Media files
 MEDIA_ROOT = BASE_DIR / 'media/'
 MEDIA_URL = '/media/'
-
 AUTH_USER_MODEL = 'authentication.CustomUser'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 REST_FRAMEWORK = {
     #Auth
     "DEFAULT_AUTHENTICATION_CLASSES":[
-        "rest_framework.authentication.TokenAuthentication", # Para autenticación basada en tokens
-        "rest_framework.authentication.SessionAuthentication", # Para autenticación basada en sesiones (útil para el panel de administración)
         "rest_framework_simplejwt.authentication.JWTAuthentication", # Para autenticación basada en JWT
+        "rest_framework.authentication.SessionAuthentication", # Para autenticación basada en sesiones (útil para el panel de administración)
     ],
     # Permissions
     # Optional:
@@ -136,19 +125,15 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSION": "v1",
     "ALLOWED_VERSIONS": ["v1", "v2"],
     # Exception handler
-    "EXCEPTION_HANDLER": "config.exception_handler.custom_exception_handler",
-    
-    
+    "EXCEPTION_HANDLER": "config.exception_handler.custom_exception_handler", 
 }
 REST_FRAMEWORK['DEFAULT_SCHEMA_CLASS'] = 'drf_spectacular.openapi.AutoSchema'
-
 SPECTACULAR_SETTINGS = {
     'TITLE': 'API de Películas',
     'DESCRIPTION': 'Una API REST para gestionar películas, géneros y usuarios.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
-
 # Configuracion de Throttling (limitación de tasa)
 REST_FRAMEWORK.update({
     "DEFAULT_THROTTLE_CLASSES": [
@@ -158,14 +143,12 @@ REST_FRAMEWORK.update({
     "DEFAULT_THROTTLE_RATES": {
         "user": "300/min", # Limite para usuarios autenticados
         "anon": "60/min", # Limite para usuarios anónimos
+        "login": "5/min", # Limite específico para intentos de login
     }
 })
-
-
 # Manejo de Logging
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True) # Crear el directorio de logs si no existe
-
 LOGGING ={
     "version":1,
     "disable_existing_loggers": False,

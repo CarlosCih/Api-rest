@@ -13,6 +13,7 @@ django-filter = "*"
 environ = "*"
 django-environ = "*"
 drf-spectacular = "*"
+djangorestframework-simplejwt = "*"
 
 [dev-packages]
 
