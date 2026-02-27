@@ -12,6 +12,7 @@ pillow = "*"
 django-filter = "*"
 environ = "*"
 django-environ = "*"
+drf-spectacular = "*"
 
 [dev-packages]
 

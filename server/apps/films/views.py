@@ -1,4 +1,3 @@
-
 import logging
 from django.shortcuts import render
 from rest_framework import viewsets, filters, views, status, authentication, permissions
@@ -7,107 +6,72 @@ from .serializers import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-
+from config.pagination import StandardPagination
+import logging
 # Configura el logger para este módulo
 logger = logging.getLogger(__name__)
-
-import logging
-
 # Create your views here.
-class ExtendedPagination(PageNumberPagination):
-    page_size=8
-    
+class ExtendedPagination(StandardPagination):
+    """Paginación extendida con información adicional"""
+
     def get_paginated_response(self, data):
         # Valores por defectos
         next_link = self.get_next_link()
-        previous_link = self.get_previous_link()
-        
+        previous_link = self.get_previous_link()       
         # Split en la primera "/" para obtener solo los parametros
         if next_link:
             next_link = next_link.split("?")[-1]
         if previous_link:
-            previous_link = previous_link.split("?")[-1]
-        
+            previous_link = previous_link.split("?")[-1]        
         return Response({
             'count': self.page.paginator.count,
             'num_pages': self.page.paginator.num_pages,
             'page_number': self.page.number,
             'page_size': self.page_size,
-            'next_link': next_link,
-            'previous_link': previous_link,
+            'next': next_link,  # Nombres estándar de DRF
+            'previous': previous_link,
             'results': data
         })
-
 class FilmViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Film.objects.all()
-    serializer_class = FilmSerializer
-    
-    
+    serializer_class = FilmSerializer        
     # Sistema de filtros
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['title', 'year', 'genres__name']
-    ordering_fields = ['title', 'year', 'genres__name']
     filterset_fields = {
         'year': ['lte', 'gte'], # Año menor o igual, año mayor o igual
         'genres': ['exact'], # Género exacto
-    }
-    
+    }    
     # Sistema de paginación
     pagination_class = ExtendedPagination
-    ordering_fields = ['title', 'year',
-                    'genres__name', 'favorites', 'average_note']
-    
-    
+    ordering_fields = ['title', 'year','genres__name', 'favorites', 'average_note'] # Campos por los que se puede ordenar
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = FilmGenre.objects.all()
     serializer_class = FilmGenreSerializer
     lookup_field = 'slug'
+    pagination_class = ExtendedPagination
     
-class FilmUserViewSet(views.APIView):
-    authentication_classes = [authentication.SessionAuthentication]
+
+class FilmUserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar las películas del usuario (favoritos, estados, notas, reviews)
+    """
+    serializer_class = FilmUserSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        queryset = FilmUser.objects.filter(user=request.user)
-        serializer = FilmUserSerializer(queryset, many=True)
-        logger.info(f"User {request.user} requested their film list. Returned {len(serializer.data)} items.")
-        return Response(serializer.data)
-
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        film_uuid = request.data.get('uuid')
-        try:
-            film = Film.objects.get(id=film_uuid)
-        except Film.DoesNotExist:
-            logger.warning(f"Film not found for uuid: {film_uuid} by user {user}")
-            return Response(
-                {'status': 'Film not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        # Al recuperar la película, se crea o actualiza la relación con el usuario
-        film_user, created = FilmUser.objects.update_or_create(
-            user=user, film=film,
-        )
-
-        # Configuracion de cada campo
-        film_user.favorite = request.data.get('favorite', False)
-        film_user.state = request.data.get('state', 0)
-        film_user.note = request.data.get('note', -1)
-        film_user.review = request.data.get('review', None)
-
-        # Si hay pelicula como no vista, se borra automaticamente
-        if int(film_user.state) == 0:
-            film_user.delete()
-            logger.info(f"FilmUser entry deleted for user {user} and film {film.id}")
-            return Response(
-                {'status': 'Deleted'},
-                status=status.HTTP_200_OK
-            )
+    
+    def get_queryset(self):
+        """Retorna solo las películas del usuario autenticado"""
+        return FilmUser.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        """Asocia automáticamente el usuario al crear una relación película-usuario"""
+        serializer.save(user=self.request.user)
+    
+    def perform_update(self, serializer):
+        """Al actualizar, si el estado es 0 (sin estado), elimina la relación"""
+        if serializer.validated_data.get('state') == 0:
+            serializer.instance.delete()
+            logger.info(f"FilmUser entry deleted for user {self.request.user} and film {serializer.instance.film.id}")
         else:
-            film_user.save()
-            logger.info(f"FilmUser entry saved/updated for user {user} and film {film.id}")
-
-        return Response(
-            {'status': 'Saved'},
-            status=status.HTTP_200_OK
-        )
+            serializer.save()
+            logger.info(f"FilmUser entry updated for user {self.request.user} and film {serializer.instance.film.id}")

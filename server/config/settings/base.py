@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django_rest_passwordreset',
     'corsheaders',
     'django_filters',
+    'drf_spectacular',
     # app personalizada
     'apps.authentication',
     'apps.films',
@@ -105,49 +106,61 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     #Auth
-    "DEFAULT_AUTHENTICATION_CLASSES":{
+    "DEFAULT_AUTHENTICATION_CLASSES":[
         "rest_framework.authentication.TokenAuthentication", # Para autenticación basada en tokens
         "rest_framework.authentication.SessionAuthentication", # Para autenticación basada en sesiones (útil para el panel de administración)
-    },
+        "rest_framework_simplejwt.authentication.JWTAuthentication", # Para autenticación basada en JWT
+    ],
     # Permissions
     # Optional:
-    "DEFAULT_PERMISSION_CLASSES": {
+    "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated", # Requiere autenticación para todas las vistas por defecto
-    },
+    ],
     # Pagination
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10, # Número de resultados por página
-    
+    "DEFAULT_RENDERER_CLASSES":[
+        "rest_framework.renderers.JSONRenderer", # Renderiza las respuestas en formato JSON
+        "rest_framework.renderers.BrowsableAPIRenderer", # Permite la interfaz
+    ],
     # Filtros
-    
-    "DEFAULT_FILTER_BACKENDS": {
+    "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend", # Para filtros basados en campos
         "rest_framework.filters.SearchFilter", # Para búsqueda por texto
         "rest_framework.filters.OrderingFilter", # Para ordenamiento de resultados
-    },
+    ],
     # Formato de fecha/hora
     "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z", # Formato ISO 8601
+    # Versionado de API
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
+    "DEFAULT_VERSION": "v1",
+    "ALLOWED_VERSIONS": ["v1", "v2"],
+    # Exception handler
+    "EXCEPTION_HANDLER": "config.exception_handler.custom_exception_handler",
     
     
+}
+REST_FRAMEWORK['DEFAULT_SCHEMA_CLASS'] = 'drf_spectacular.openapi.AutoSchema'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API de Películas',
+    'DESCRIPTION': 'Una API REST para gestionar películas, géneros y usuarios.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 # Configuracion de Throttling (limitación de tasa)
 REST_FRAMEWORK.update({
-    "DEFAULT_THROTTLE_CLASSES": {
+    "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.UserRateThrottle", # Limita por usuario autenticado
         "rest_framework.throttling.AnonRateThrottle", # Limita por usuario anónimo
-    },
+    ],
     "DEFAULT_THROTTLE_RATES": {
         "user": "300/min", # Limite para usuarios autenticados
         "anon": "60/min", # Limite para usuarios anónimos
     }
 })
 
-# Versionado de la API
-REST_FRAMEWORK["DEFAULT_VERSIONING_CLASS"] = "rest_framework.versioning.URLPathVersioning"
-REST_FRAMEWORK["DEFAULT_VERSION"] = "v1"
-REST_FRAMEWORK["ALLOWED_VERSIONS"] = ["v1", "v2"]
-REST_FRAMEWORK["EXCEPTION_HANDLER"] = "config.exceptions_handler.custom_exception_handler"
 
 # Manejo de Logging
 LOG_DIR = BASE_DIR / "logs"
@@ -170,7 +183,7 @@ LOGGING ={
             "formatter": "verbose",
         },
         "file":{
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": str(LOG_DIR / "server.log"),
             "maxBytes": 5 * 1024 * 1024, # 5 MB
             "backupCount": 5, # Mantener los últimos 5 archivos de log
@@ -187,7 +200,7 @@ LOGGING ={
             "level": "ERROR",
         },
     },
-    "logger":{
+    "loggers":{
         # Django core
         "django":{
             "handlers": ["console","file"],

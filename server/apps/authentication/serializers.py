@@ -5,6 +5,7 @@ from django.contrib.auth.hashers import make_password
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     username = serializers.CharField(required=True)
+    # Se usa para crear, actualizar y mostrar
     password = serializers.CharField(write_only=True, min_length=8)
     avatar = serializers.ImageField(required=False, allow_null=True)
     
@@ -40,3 +41,21 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ('email', 'username', 'password', 'avatar')
+        
+class UserReadSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = get_user_model()
+        fields = ('id','email', 'username','avatar', 'date_joined', 'last_login')
+        
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+    
+    class Meta:
+        model = get_user_model()
+        fields = ('email','username','password')
+        
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ('username', 'avatar')

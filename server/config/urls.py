@@ -20,23 +20,23 @@ from rest_framework import routers
 from django.urls import path, include
 from django.conf.urls.static import static
 from apps.films import views as film_views
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
 # Router para las vistas de la app films
 router = routers.DefaultRouter()
 router.register('films', film_views.FilmViewSet, basename='films')
 router.register('genres', film_views.GenreViewSet, basename='genres')
-
+router.register('user-film', film_views.FilmUserViewSet, basename='user-film')
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     #API versioning
     path('api/v1/', include('apps.authentication.urls')),
-    path('api/v1/', include(router.urls)),
-    path('api/v1/userfilms/', film_views.FilmUserViewSet.as_view(), name='user-films'),
-    
-
+    path('api/v1/', include(router.urls)),    
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
 
 
