@@ -17,4 +17,11 @@ LOGGING["loggers"]["apps.authentication"]["level"] = "DEBUG"
 LOGGING["loggers"]["apps.films"]["level"] = "DEBUG"
 LOGGING["loggers"]["django"]["level"] = "DEBUG"
 LOGGING["loggers"]["rest_framework"]["level"] = "DEBUG"
-    
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+        'TIMEOUT': 300,
+    }
+}

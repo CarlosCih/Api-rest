@@ -32,7 +32,7 @@ class LoginView(APIView):
             refresh = RefreshToken.for_user(user)
             logger.info(f"Login exitoso para usuario: {email}")
             return Response({
-                'user': UserSerializer(user).data,
+                'user': UserMeSerializer(user).data,
                 'token': {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
@@ -73,7 +73,6 @@ class SignupView(generics.CreateAPIView):
     throttle_classes = [SignUpRateThrottle]
     
 class ProfileView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserSerializer
     http_method_names = ['get','patch']
     
     def get_object(self):
@@ -82,5 +81,5 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         
     def get_serializer_class(self):
         if self.request.method == 'GET':
-            return UserReadSerializer
+            return UserMeSerializer
         return UserUpdateSerializer

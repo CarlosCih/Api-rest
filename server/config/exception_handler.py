@@ -13,11 +13,24 @@ def custom_exception_handler(exc, context):
     error_id = str(uuid.uuid4())
 
     if response is not None:
-        # Errores DRF (400, 401, 403, 404, etc.)
+        # Normalizar errores a formato consistente
+        errors = {}
+        
+        if isinstance(response.data, dict):
+            # Si es dict, mantener la estructura
+            errors = response.data
+        elif isinstance(response.data, list):
+            # Si es lista, poner en non_field_errors
+            errors = {"non_field_errors": response.data}
+        else:
+            # Cualquier otro caso
+            errors = {"detail": str(response.data)}
+        
         data = {
             "error_id": error_id,
-            "detail": response.data,
+            "errors": errors,
         }
+        
         logger.warning(
             "API error",
             extra={
@@ -39,6 +52,9 @@ def custom_exception_handler(exc, context):
         },
     )
     return Response(
-        {"error_id": error_id, "detail": "Internal server error"},
+        {
+            "error_id": error_id,
+            "errors": {"detail": "Internal server error"}
+        },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
