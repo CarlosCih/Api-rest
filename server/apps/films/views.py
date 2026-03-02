@@ -7,6 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from config.pagination import StandardPagination
+from .permissions import IsOwner
 import logging
 # Configura el logger para este módulo
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ class FilmUserViewSet(viewsets.ModelViewSet):
     ViewSet para gestionar las películas del usuario (favoritos, estados, notas, reviews)
     """
     serializer_class = FilmUserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
     
     def get_queryset(self):
         """Retorna solo las películas del usuario autenticado"""

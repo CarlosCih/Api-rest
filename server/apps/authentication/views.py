@@ -64,10 +64,13 @@ class LogoutView(APIView):
             return Response({
                 'detail': 'Error durante logout'
             }, status=status.HTTP_400_BAD_REQUEST)
+class SignUpRateThrottle(AnonRateThrottle):
+    scope = 'signup'   
 
 class SignupView(generics.CreateAPIView):
     serializer_class = UserCreateSerializer
     permission_classes = [AllowAny] # Permitir acceso sin autenticación para el registro
+    throttle_classes = [SignUpRateThrottle]
     
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer

@@ -144,6 +144,7 @@ REST_FRAMEWORK.update({
         "user": "300/min", # Limite para usuarios autenticados
         "anon": "60/min", # Limite para usuarios anónimos
         "login": "5/min", # Limite específico para intentos de login
+        "signup": "3/hour", # Limite específico para intentos de registro
     }
 })
 # Manejo de Logging
